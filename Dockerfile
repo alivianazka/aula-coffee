@@ -19,6 +19,7 @@ RUN apk add --no-cache \
     zip \
     unzip \
     mariadb-client \
+    ca-certificates \
     openssh \
     && echo "root:Docker!" | chpasswd \
     && ssh-keygen -A
@@ -39,11 +40,12 @@ COPY --from=frontend /app/public/build ./public/build
 # Install PHP dependencies (tanpa dev)
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy konfigurasi Nginx, Supervisor, SSH, & Entrypoint
+# Copy konfigurasi Nginx, Supervisor, SSH, Entrypoint, & Sertifikat SSL Azure
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/sshd_config /etc/ssh/sshd_config
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/DigiCertGlobalRootCA.crt.pem /etc/ssl/certs/DigiCertGlobalRootCA.crt.pem
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
