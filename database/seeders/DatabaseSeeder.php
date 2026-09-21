@@ -21,25 +21,34 @@ class DatabaseSeeder extends Seeder
         // Seed barang
         $this->call(BarangSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@aulacoffee.id',
-            'password' => 'password',
-            'role' => 'admin'
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@aulacoffee.id'],
+            [
+                'name' => 'Admin',
+                'password' => 'password',
+                'role' => 'admin',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Owner',
-            'email' => 'owner@aulacoffee.id',
-            'password' => 'password',
-            'role' => 'owner'
-        ]);
+        User::firstOrCreate(
+            ['email' => 'owner@aulacoffee.id'],
+            [
+                'name' => 'Owner',
+                'password' => 'password',
+                'role' => 'owner',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Karyawan 1',
-            'email' => 'karyawan1@gmail.com',
-            'password' => 'password',
-            'role' => 'karyawan'
-        ]);
+        User::firstOrCreate(
+            ['email' => 'karyawan1@gmail.com'],
+            [
+                'name' => 'Karyawan 1',
+                'password' => 'password',
+                'role' => 'karyawan',
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

@@ -13,6 +13,10 @@ class BarangSeeder extends Seeder
      */
     public function run(): void
     {
+        if (Barang::count() > 0) {
+            return;
+        }
+
         $bar = BarangKategori::where('nama', 'Bar')->first();
         $kitchen = BarangKategori::where('nama', 'Kitchen')->first();
         $peralatan = BarangKategori::where('nama', 'Peralatan')->first();

@@ -11,9 +11,10 @@ chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 # Buat symbolic link storage jika belum ada
 php artisan storage:link || true
 
-# Jalankan migrasi database otomatis saat kontainer start
-echo "Running database migration..."
+# Jalankan migrasi dan seeding database otomatis saat kontainer start
+echo "Running database migration and seed..."
 php artisan migrate --force || true
+php artisan db:seed --force || true
 
 # Cache konfigurasi, route, dan view
 php artisan config:cache || true
