@@ -15,6 +15,45 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Route bantuan setup admin
+Route::get('/setup-admin', function () {
+    $admin = \App\Models\User::updateOrCreate(
+        ['email' => 'admin@aulacoffee.id'],
+        [
+            'name' => 'Admin',
+            'password' => 'password',
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]
+    );
+
+    $owner = \App\Models\User::updateOrCreate(
+        ['email' => 'owner@aulacoffee.id'],
+        [
+            'name' => 'Owner',
+            'password' => 'password',
+            'role' => 'owner',
+            'email_verified_at' => now(),
+        ]
+    );
+
+    $karyawan = \App\Models\User::updateOrCreate(
+        ['email' => 'karyawan1@gmail.com'],
+        [
+            'name' => 'Karyawan 1',
+            'password' => 'password',
+            'role' => 'karyawan',
+            'email_verified_at' => now(),
+        ]
+    );
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Admin, Owner, dan Karyawan berhasil dibuat / diperbarui!',
+        'users' => \App\Models\User::all(['id', 'name', 'email', 'role']),
+    ]);
+});
+
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
