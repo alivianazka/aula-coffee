@@ -9,7 +9,7 @@ RUN npm run build
 # Stage 2: PHP Application & Server
 FROM php:8.2-fpm-alpine
 
-# Install dependencies & PHP extensions
+# Install dependencies, PHP extensions, and OpenSSH for Azure App Service SSH
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -18,7 +18,10 @@ RUN apk add --no-cache \
     libzip-dev \
     zip \
     unzip \
-    mariadb-client
+    mariadb-client \
+    openssh \
+    && echo "root:Docker!" | chpasswd \
+    && ssh-keygen -A
 
 RUN docker-php-ext-install pdo pdo_mysql gd zip
 
@@ -36,14 +39,16 @@ COPY --from=frontend /app/public/build ./public/build
 # Install PHP dependencies (tanpa dev)
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy konfigurasi Nginx & Supervisor
+# Copy konfigurasi Nginx, Supervisor, SSH, & Entrypoint
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/sshd_config /etc/ssh/sshd_config
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-EXPOSE 80
+# Port 80 untuk Web, Port 2222 untuk Azure SSH
+EXPOSE 80 2222
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
