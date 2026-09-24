@@ -45,7 +45,7 @@
                 <div class="label">Stok Rendah</div>
             </div>
         </a>
-        <a href="{{ route('laporan.index') }}" class="stat-card" style="text-decoration: none;">
+        <!-- <a href="{{ route('laporan.index') }}" class="stat-card" style="text-decoration: none;">
             <div class="stat-icon" style="background:#f3e5f5; color:#8e44ad;">
                 <i class="fas fa-file-alt"></i>
             </div>
@@ -53,7 +53,7 @@
                 <div class="num" style="color:#8e44ad;">{{ $totalLaporan }}</div>
                 <div class="label">Total Laporan</div>
             </div>
-        </a>
+        </a> -->
         <a href="{{ route('owner.karyawan.status') }}" class="stat-card" style="text-decoration: none;">
             <div class="stat-icon" style="background:#e8f5e9; color:#27ae60;">
                 <i class="fas fa-users"></i>
