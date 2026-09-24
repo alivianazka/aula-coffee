@@ -88,7 +88,7 @@
             @csrf
             <input type="hidden" name="tanggal" value="{{ isset($tanggal) ? $tanggal->format('Y-m-d') : '' }}">
             <button type="submit" class="btn-dl-inline">
-                <i class="fas fa-file-csv"></i> Download CSV
+                <i class="fas fa-file-excel"></i> Download Excel
             </button>
         </form>
         @endif
@@ -98,12 +98,11 @@
         <div class="result-head">
             <div>
                 <h2><i class="fas fa-calendar-day"></i> Laporan Harian</h2>
-                <div class="sub">{{ isset($tanggal) ? $tanggal->format('d F Y') : '-' }} · {{ $laporan->count() }} data</div>
+                <div class="sub">{{ isset($tanggal) ? $tanggal->format('d F Y') : '-' }} · <span id="jumlah-data">{{ $laporan->count() }}</span> data · diperbarui otomatis</div>
             </div>
         </div>
 
-        @if($laporan->count() > 0)
-        <div style="overflow-x:auto;">
+        <div id="laporan-table-wrap" style="overflow-x:auto;{{ $laporan->count() === 0 ? 'display:none;' : '' }}">
             <table class="rtable">
                 <thead>
                     <tr>
@@ -117,7 +116,7 @@
                         <th>Input Oleh</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="laporan-body">
                     @foreach($laporan as $i => $item)
                     <tr>
                         <td style="color:#bbb;">{{ $i + 1 }}</td>
@@ -134,25 +133,65 @@
                 <tfoot>
                     <tr>
                         <td colspan="3">TOTAL</td>
-                        <td>{{ $laporan->sum('stok_awal') }}</td>
-                        <td>+{{ $laporan->sum('stok_masuk') }}</td>
-                        <td>-{{ $laporan->sum('stok_keluar') }}</td>
-                        <td>{{ $laporan->sum('stok_akhir') }}</td>
+                        <td id="total-stok-awal">{{ $laporan->sum('stok_awal') }}</td>
+                        <td id="total-stok-masuk">+{{ $laporan->sum('stok_masuk') }}</td>
+                        <td id="total-stok-keluar">-{{ $laporan->sum('stok_keluar') }}</td>
+                        <td id="total-stok-akhir">{{ $laporan->sum('stok_akhir') }}</td>
                         <td></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
-        @else
-        <div class="empty-state">
+        <div id="laporan-empty-state" class="empty-state" style="{{ $laporan->count() > 0 ? 'display:none;' : '' }}">
             <i class="fas fa-inbox"></i>
             <div style="font-size:16px; font-weight:700; color:#666;">Tidak ada data laporan</div>
             <div style="font-size:13px; margin-top:6px;">Belum ada transaksi stok pada tanggal yang dipilih.</div>
         </div>
-        @endif
     </div>
 
 </div>
+
+<script>
+    const laporanDataUrl = @json(route('laporan.harian.data', ['tanggal' => $tanggal->format('Y-m-d')]));
+
+    async function refreshLaporan() {
+        try {
+            const response = await fetch(laporanDataUrl, { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) return;
+
+            const result = await response.json();
+            const body = document.getElementById('laporan-body');
+            const count = document.getElementById('jumlah-data');
+            const tableWrap = document.getElementById('laporan-table-wrap');
+            const emptyState = document.getElementById('laporan-empty-state');
+            if (!body || !count || !tableWrap || !emptyState) return;
+
+            count.textContent = result.data.length;
+            tableWrap.style.display = result.data.length ? 'block' : 'none';
+            emptyState.style.display = result.data.length ? 'none' : 'block';
+            document.getElementById('total-stok-awal').textContent = result.data.reduce((total, item) => total + Number(item.stok_awal), 0);
+            document.getElementById('total-stok-masuk').textContent = '+' + result.data.reduce((total, item) => total + Number(item.stok_masuk), 0);
+            document.getElementById('total-stok-keluar').textContent = '-' + result.data.reduce((total, item) => total + Number(item.stok_keluar), 0);
+            document.getElementById('total-stok-akhir').textContent = result.data.reduce((total, item) => total + Number(item.stok_akhir), 0);
+            body.innerHTML = result.data.map((item, index) => `
+                <tr>
+                    <td style="color:#bbb;">${index + 1}</td>
+                    <td><strong>${item.barang}</strong></td>
+                    <td style="color:#888;">${item.kategori}</td>
+                    <td>${item.stok_awal}</td>
+                    <td style="color:#27ae60; font-weight:700;">+${item.stok_masuk}</td>
+                    <td style="color:#e53935; font-weight:700;">-${item.stok_keluar}</td>
+                    <td><strong>${item.stok_akhir}</strong></td>
+                    <td style="color:#888;">${item.user}</td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Gagal memperbarui laporan:', error);
+        }
+    }
+
+    setInterval(refreshLaporan, 5000);
+</script>
 
 </body>
 </html>

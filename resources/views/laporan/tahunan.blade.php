@@ -49,7 +49,7 @@
         <form method="POST" action="{{ route('laporan.download-tahunan') }}" class="mt-3">
             @csrf
             <input type="hidden" name="tahun" value="{{ request('tahun') }}">
-            <button type="submit" class="btn btn-success"><i class="fas fa-download"></i> Download CSV</button>
+            <button type="submit" class="btn btn-success"><i class="fas fa-file-excel"></i> Download Excel</button>
             <a href="{{ route('laporan.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
         </form>
     </div>

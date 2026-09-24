@@ -18,10 +18,7 @@ class DashboardController extends Controller
                 ->whereNull('akhir_shift')
                 ->first();
 
-            $barangStokRendah = Barang::where(function ($query) {
-                $query->where('qty', '<=', 100)
-                    ->orWhereRaw('qty <= stok_opname');
-            })->count();
+            $barangStokRendah = Barang::whereColumn('qty', '<=', 'stok_opname')->count();
 
             return view('karyawan.dashboard', compact('activeShift', 'barangStokRendah'));
         } elseif ($user->role === 'admin') {
@@ -41,6 +38,27 @@ class DashboardController extends Controller
         }
 
         return view('dashboard');
+    }
+
+    public function stockLowStatus()
+    {
+        $barang = Barang::with('kategori')
+            ->whereColumn('qty', '<=', 'stok_opname')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json([
+            'count' => $barang->count(),
+            'items' => $barang->map(fn ($item) => [
+                'id' => $item->id,
+                'nama' => $item->nama,
+                'kategori' => $item->kategori?->nama ?? '-',
+                'qty' => $item->qty,
+                'stok_opname' => $item->stok_opname,
+                'unit' => $item->unit,
+            ])->values(),
+            'updated_at' => now()->format('d/m/Y H:i:s'),
+        ]);
     }
 
     public function karyawanStatus()

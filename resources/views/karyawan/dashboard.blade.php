@@ -52,7 +52,7 @@
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
             <div class="stat-text">
-                <div class="num" style="color:#e53935;">{{ $barangStokRendah }}</div>
+                <div class="num" id="stock-low-count" style="color:#e53935;">{{ $barangStokRendah }}</div>
                 <div class="label">Item Stok Rendah</div>
             </div>
         </div>

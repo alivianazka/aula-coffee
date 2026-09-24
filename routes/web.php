@@ -75,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.read-all');
     Route::get('/api/notifikasi/count', [NotifikasiController::class, 'countUnread']);
     Route::get('/api/notifikasi/unread', [NotifikasiController::class, 'getUnread']);
+    Route::get('/api/stok-rendah', [DashboardController::class, 'stockLowStatus'])->name('api.stok-rendah');
 
     // Admin Routes
     Route::middleware(['role:admin,owner'])->group(function () {
@@ -87,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
         // Laporan
         Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
         Route::post('/laporan/harian', [LaporanController::class, 'harian'])->name('laporan.harian');
+        Route::get('/laporan/harian/data', [LaporanController::class, 'harianData'])->name('laporan.harian.data');
         Route::post('/laporan/bulanan', [LaporanController::class, 'bulanan'])->name('laporan.bulanan');
         Route::post('/laporan/tahunan', [LaporanController::class, 'tahunan'])->name('laporan.tahunan');
         Route::post('/laporan/download/harian', [LaporanController::class, 'downloadHarian'])->name('laporan.download-harian');

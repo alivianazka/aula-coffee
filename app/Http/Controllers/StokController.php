@@ -79,7 +79,7 @@ class StokController extends Controller
                 // Refresh model after increment/decrement
                 $barang->refresh();
 
-                // Auto-notifikasi jika stok mencapai atau di bawah SO
+                // Keep the shared low-stock warning synchronized with current stock.
                 if ($barang->isStockLow()) {
                     Notifikasi::where('barang_id', $barang->id)
                         ->where('status', 'belum_dibaca')
@@ -97,6 +97,10 @@ class StokController extends Controller
                     ]);
 
                     $soWarningMsg = 'Stok ' . $barang->nama . ' mencapai batas SO (' . $barang->qty . ' ' . $barang->unit . '). Notifikasi telah dikirim ke Admin!';
+                } else {
+                    Notifikasi::where('barang_id', $barang->id)
+                        ->where('status', 'belum_dibaca')
+                        ->delete();
                 }
             });
         } catch (\Exception $e) {

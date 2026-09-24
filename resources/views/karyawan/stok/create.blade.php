@@ -336,12 +336,11 @@
             @php
                 $stokRendah = \App\Models\Barang::with('kategori')->whereRaw('qty <= stok_opname')->get();
             @endphp
-            @if($stokRendah->count() > 0)
-            <div class="info-card" style="margin-top:18px;">
+            <div id="stok-rendah-alert" class="info-card" style="margin-top:18px;{{ $stokRendah->count() === 0 ? 'display:none;' : '' }}">
                 <div class="card-head" style="background:#e53935; color:white;">
-                    <i class="fas fa-exclamation-triangle"></i> ⚠️ Stok Mencapai SO ({{ $stokRendah->count() }} Item)
+                    <i class="fas fa-exclamation-triangle"></i> Stok Mencapai SO (<span id="stok-rendah-count">{{ $stokRendah->count() }}</span> Item)
                 </div>
-                <div class="card-body-p" style="padding:16px 20px;">
+                <div id="stok-rendah-list" class="card-body-p" style="padding:16px 20px;">
                     @foreach($stokRendah as $b)
                     <div class="riwayat-item">
                         <div>
@@ -356,7 +355,6 @@
                     @endforeach
                 </div>
             </div>
-            @endif
         </div>
     </div>
 </div>
@@ -418,6 +416,47 @@
 
     // Init tipe if old value exists
     if (selectedTipe) setTipe(selectedTipe);
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>'"]/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
+        }[character]));
+    }
+
+    async function refreshLowStockAlert() {
+        try {
+            const response = await fetch('{{ route('api.stok-rendah') }}', {
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store'
+            });
+            if (!response.ok) return;
+
+            const result = await response.json();
+            const alert = document.getElementById('stok-rendah-alert');
+            const count = document.getElementById('stok-rendah-count');
+            const list = document.getElementById('stok-rendah-list');
+            if (!alert || !count || !list) return;
+
+            count.textContent = result.count;
+            alert.style.display = result.count > 0 ? '' : 'none';
+            list.innerHTML = result.items.map(item => `
+                <div class="riwayat-item">
+                    <div>
+                        <div class="ri-nama">${escapeHtml(item.nama)}</div>
+                        <div class="ri-ket">${escapeHtml(item.kategori)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:700; color:#e53935;">${item.qty} ${escapeHtml(item.unit)}</div>
+                        <div style="font-size:11px; color:#aaa;">SO: ${item.stok_opname}</div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Gagal memperbarui peringatan stok rendah:', error);
+        }
+    }
+
+    setInterval(refreshLowStockAlert, 5000);
 
     // Show SO toast jika ada notif baru dari session
     @if(session('so_warning'))

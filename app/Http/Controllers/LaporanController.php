@@ -23,13 +23,42 @@ class LaporanController extends Controller
         ]);
 
         $tanggal = Carbon::parse($request->tanggal);
-        
-        $laporan = Laporan::with(['barang.kategori', 'user'])
-            ->where('tipe_laporan', 'harian')
-            ->whereDate('tanggal_laporan', $tanggal)
-            ->get();
+        $laporan = $this->buildReport(
+            $tanggal->copy()->startOfDay(),
+            $tanggal->copy()->endOfDay(),
+            'harian',
+            $tanggal
+        );
 
         return view('laporan.harian', compact('laporan', 'tanggal'));
+    }
+
+    public function harianData(Request $request)
+    {
+        $request->validate([
+            'tanggal' => 'required|date',
+        ]);
+
+        $tanggal = Carbon::parse($request->tanggal);
+        $laporan = $this->buildReport(
+            $tanggal->copy()->startOfDay(),
+            $tanggal->copy()->endOfDay(),
+            'harian',
+            $tanggal
+        );
+
+        return response()->json([
+            'data' => $laporan->map(fn ($item) => [
+                'barang' => $item->barang?->nama ?? '-',
+                'kategori' => $item->barang?->kategori?->nama ?? '-',
+                'stok_awal' => $item->stok_awal,
+                'stok_masuk' => $item->stok_masuk,
+                'stok_keluar' => $item->stok_keluar,
+                'stok_akhir' => $item->stok_akhir,
+                'user' => $item->user?->name ?? 'Sistem',
+            ])->values(),
+            'updated_at' => now()->format('d/m/Y H:i:s'),
+        ]);
     }
 
     public function bulanan(Request $request)
@@ -39,14 +68,15 @@ class LaporanController extends Controller
         ]);
 
         list($tahun, $bulan) = explode('-', $request->bulan);
-        
-        $laporan = Laporan::with(['barang.kategori', 'user'])
-            ->where('tipe_laporan', 'bulanan')
-            ->whereYear('tanggal_laporan', $tahun)
-            ->whereMonth('tanggal_laporan', $bulan)
-            ->get();
+        $periode = Carbon::createFromDate((int) $tahun, (int) $bulan, 1);
+        $laporan = $this->buildReport(
+            $periode->copy()->startOfMonth(),
+            $periode->copy()->endOfMonth(),
+            'bulanan',
+            $periode->copy()->endOfMonth()
+        );
 
-        $periode = Carbon::parse($request->bulan . '-01')->format('F Y');
+        $periode = $periode->format('F Y');
 
         return view('laporan.bulanan', compact('laporan', 'periode'));
     }
@@ -58,11 +88,13 @@ class LaporanController extends Controller
         ]);
 
         $tahun = $request->tahun;
-
-        $laporan = Laporan::with(['barang.kategori', 'user'])
-            ->where('tipe_laporan', 'tahunan')
-            ->whereYear('tanggal_laporan', $tahun)
-            ->get();
+        $periode = Carbon::createFromDate((int) $tahun, 1, 1);
+        $laporan = $this->buildReport(
+            $periode->copy()->startOfYear(),
+            $periode->copy()->endOfYear(),
+            'tahunan',
+            $periode->copy()->endOfYear()
+        );
 
         return view('laporan.tahunan', compact('laporan', 'tahun'));
     }
@@ -74,13 +106,14 @@ class LaporanController extends Controller
         ]);
 
         $tanggal = Carbon::parse($request->tanggal);
-        
-        $laporan = Laporan::with(['barang.kategori', 'user'])
-            ->where('tipe_laporan', 'harian')
-            ->whereDate('tanggal_laporan', $tanggal)
-            ->get();
+        $laporan = $this->buildReport(
+            $tanggal->copy()->startOfDay(),
+            $tanggal->copy()->endOfDay(),
+            'harian',
+            $tanggal
+        );
 
-        return $this->generatePDF($laporan, 'Laporan Harian - ' . $tanggal->format('d-m-Y'));
+        return $this->generateSpreadsheet($laporan, 'Laporan Harian - ' . $tanggal->format('d-m-Y'));
     }
 
     public function downloadBulanan(Request $request)
@@ -90,16 +123,17 @@ class LaporanController extends Controller
         ]);
 
         list($tahun, $bulan) = explode('-', $request->bulan);
-        
-        $laporan = Laporan::with(['barang.kategori', 'user'])
-            ->where('tipe_laporan', 'bulanan')
-            ->whereYear('tanggal_laporan', $tahun)
-            ->whereMonth('tanggal_laporan', $bulan)
-            ->get();
+        $periode = Carbon::createFromDate((int) $tahun, (int) $bulan, 1);
+        $laporan = $this->buildReport(
+            $periode->copy()->startOfMonth(),
+            $periode->copy()->endOfMonth(),
+            'bulanan',
+            $periode->copy()->endOfMonth()
+        );
 
-        $periode = Carbon::parse($request->bulan . '-01')->format('F Y');
+        $periode = $periode->format('F Y');
 
-        return $this->generatePDF($laporan, 'Laporan Bulanan - ' . $periode);
+        return $this->generateSpreadsheet($laporan, 'Laporan Bulanan - ' . $periode);
     }
 
     public function downloadTahunan(Request $request)
@@ -108,32 +142,108 @@ class LaporanController extends Controller
             'tahun' => 'required|digits:4|integer|min:2020|max:' . date('Y'),
         ]);
 
-        $laporan = Laporan::with(['barang.kategori', 'user'])
-            ->where('tipe_laporan', 'tahunan')
-            ->whereYear('tanggal_laporan', $request->tahun)
-            ->get();
+        $periode = Carbon::createFromDate((int) $request->tahun, 1, 1);
+        $laporan = $this->buildReport(
+            $periode->copy()->startOfYear(),
+            $periode->copy()->endOfYear(),
+            'tahunan',
+            $periode->copy()->endOfYear()
+        );
 
-        return $this->generatePDF($laporan, 'Laporan Tahunan - ' . $request->tahun);
+        return $this->generateSpreadsheet($laporan, 'Laporan Tahunan - ' . $request->tahun);
     }
 
-    private function generatePDF($laporan, $judul)
+    private function generateSpreadsheet($laporan, $judul)
     {
-        // This will be implemented with a PDF library like mPDF or Dompdf
-        // For now, we'll return a CSV export
-        $csv = "Aula Coffe Club\n";
-        $csv .= $judul . "\n\n";
-        $csv .= "Nama Barang,Kategori,Stok Awal,Masuk,Keluar,Stok Akhir,Input Oleh\n";
-        
+        $rows = '';
+        $totals = [
+            'stok_awal' => 0,
+            'stok_masuk' => 0,
+            'stok_keluar' => 0,
+            'stok_akhir' => 0,
+        ];
+
         foreach ($laporan as $item) {
-            $csv .= "{$item->barang->nama},{$item->barang->kategori->nama}," .
-                    "{$item->stok_awal},{$item->stok_masuk},{$item->stok_keluar}," .
-                    "{$item->stok_akhir}," . ($item->user?->name ?? 'Sistem') . "\n";
+            foreach ($totals as $key => $total) {
+                $totals[$key] += (int) $item->{$key};
+            }
+
+            $rows .= '<tr>' .
+                '<td>' . e($item->barang?->nama ?? '-') . '</td>' .
+                '<td>' . e($item->barang?->kategori?->nama ?? '-') . '</td>' .
+                '<td class="number">' . number_format($item->stok_awal) . '</td>' .
+                '<td class="number positive">+' . number_format($item->stok_masuk) . '</td>' .
+                '<td class="number negative">-' . number_format($item->stok_keluar) . '</td>' .
+                '<td class="number strong">' . number_format($item->stok_akhir) . '</td>' .
+                '<td>' . e($item->user?->name ?? 'Sistem') . '</td>' .
+                '</tr>';
         }
 
-        return response($csv, 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"" . str_replace(' ', '_', $judul) . ".csv\"",
+        $html = '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><style>' .
+            'body{font-family:Arial,sans-serif;color:#29231f}' .
+            '.sheet{width:100%;border-collapse:collapse}' .
+            '.brand{background:#1a1714;color:#d4a373;font-size:22px;font-weight:bold;padding:18px 20px}' .
+            '.subtitle{background:#f5eee7;color:#6d6259;font-size:14px;padding:10px 20px 18px}' .
+            'th{background:#2c251f;color:#fff;padding:12px 10px;text-align:left;border:1px solid #51473e}' .
+            'td{padding:10px;border:1px solid #ddd4cb;background:#fff}' .
+            'tr:nth-child(even) td{background:#faf7f3}' .
+            '.number{text-align:right;mso-number-format:"#,##0"}.positive{color:#218649;font-weight:bold}.negative{color:#c43d36;font-weight:bold}.strong{font-weight:bold}' .
+            '.total td{background:#1a1714;color:#d4a373;font-weight:bold}' .
+            '</style></head><body><table class="sheet">' .
+            '<tr><td colspan="7" class="brand">Aula Coffee Club</td></tr>' .
+            '<tr><td colspan="7" class="subtitle">' . e($judul) . ' &nbsp; | &nbsp; Dicetak: ' . now()->format('d/m/Y H:i') . '</td></tr>' .
+            '<tr><td colspan="7"></td></tr>' .
+            '<tr><th>Nama Barang</th><th>Kategori</th><th>Stok Awal</th><th>Masuk</th><th>Keluar</th><th>Stok Akhir</th><th>Input Oleh</th></tr>' .
+            $rows .
+            '<tr class="total"><td colspan="2">TOTAL</td><td class="number">' . number_format($totals['stok_awal']) . '</td><td class="number">+' . number_format($totals['stok_masuk']) . '</td><td class="number">-' . number_format($totals['stok_keluar']) . '</td><td class="number">' . number_format($totals['stok_akhir']) . '</td><td></td></tr>' .
+            '</table></body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"" . str_replace(' ', '_', $judul) . ".xls\"",
         ]);
+    }
+
+    private function buildReport(Carbon $start, Carbon $end, string $type, Carbon $reportDate)
+    {
+        $movements = StokMovement::with(['barang.kategori', 'user'])
+            ->whereBetween('tanggal', [$start, $end])
+            ->orderBy('tanggal')
+            ->get()
+            ->groupBy('barang_id');
+
+        if ($movements->isEmpty()) {
+            return collect();
+        }
+
+        $priorMovements = StokMovement::where('tanggal', '<', $start)
+            ->whereIn('barang_id', $movements->keys())
+            ->get()
+            ->groupBy('barang_id');
+
+        return $movements->map(function ($items, $barangId) use ($priorMovements, $type, $reportDate) {
+            $barang = $items->first()->barang;
+            $sebelumnya = $priorMovements->get($barangId, collect());
+            $stokAwal = $barang->stok_awal + $sebelumnya->sum(function ($movement) {
+                return $movement->tipe === 'masuk' ? $movement->qty : -$movement->qty;
+            });
+            $stokMasuk = $items->where('tipe', 'masuk')->sum('qty');
+            $stokKeluar = $items->where('tipe', 'keluar')->sum('qty');
+
+            $laporan = new Laporan([
+                'barang_id' => $barangId,
+                'tipe_laporan' => $type,
+                'tanggal_laporan' => $reportDate,
+                'stok_awal' => $stokAwal,
+                'stok_masuk' => $stokMasuk,
+                'stok_keluar' => $stokKeluar,
+                'stok_akhir' => $stokAwal + $stokMasuk - $stokKeluar,
+            ]);
+            $laporan->setRelation('barang', $barang);
+            $laporan->setRelation('user', $items->last()->user);
+
+            return $laporan;
+        })->values();
     }
 
     public function generateReports()
@@ -169,6 +279,7 @@ class LaporanController extends Controller
 
             Laporan::create([
                 'barang_id' => $barangId,
+                'user_id' => $items->last()->user_id,
                 'tipe_laporan' => 'harian',
                 'tanggal_laporan' => $tanggal,
                 'stok_awal' => $barang->stok_awal,

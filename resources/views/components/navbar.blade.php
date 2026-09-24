@@ -551,4 +551,24 @@
         const menu = document.getElementById('userMenu');
         if (!menu.contains(e.target)) menu.classList.remove('open');
     });
+
+    async function refreshLowStockCount() {
+        const countElement = document.getElementById('stock-low-count');
+        if (!countElement) return;
+
+        try {
+            const response = await fetch('{{ route('api.stok-rendah') }}', {
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store'
+            });
+            if (response.ok) {
+                const result = await response.json();
+                countElement.textContent = result.count;
+            }
+        } catch (error) {
+            console.error('Gagal memperbarui status stok rendah:', error);
+        }
+    }
+
+    setInterval(refreshLowStockCount, 5000);
 </script>

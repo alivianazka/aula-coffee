@@ -173,7 +173,7 @@
                     <input type="hidden" name="tanggal" id="dl_tanggal_harian">
                     <button type="submit" class="btn-dl"
                         onclick="document.getElementById('dl_tanggal_harian').value = document.getElementById('tanggal_harian').value">
-                        <i class="fas fa-file-csv"></i> Download CSV
+                        <i class="fas fa-file-excel"></i> Download Excel
                     </button>
                 </form>
             </div>
@@ -206,7 +206,7 @@
                     <input type="hidden" name="bulan" id="dl_bulan">
                     <button type="submit" class="btn-dl"
                         onclick="document.getElementById('dl_bulan').value = document.getElementById('bulan').value">
-                        <i class="fas fa-file-csv"></i> Download CSV
+                        <i class="fas fa-file-excel"></i> Download Excel
                     </button>
                 </form>
             </div>
@@ -239,7 +239,7 @@
                     <input type="hidden" name="tahun" id="dl_tahun">
                     <button type="submit" class="btn-dl"
                         onclick="document.getElementById('dl_tahun').value = document.getElementById('tahun').value">
-                        <i class="fas fa-file-csv"></i> Download CSV
+                        <i class="fas fa-file-excel"></i> Download Excel
                     </button>
                 </form>
             </div>
